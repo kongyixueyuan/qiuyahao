@@ -27,6 +27,7 @@ func (blockchainIterator *BlockchainIterator) Next() *Block {
 
 		if b != nil {
 			currentBlockBytes := b.Get(blockchainIterator.CurrentHash)
+
 			// 获取到当前迭代器里面的currentHash所对于的区块
 			block = DeserializeBlock(currentBlockBytes)
 

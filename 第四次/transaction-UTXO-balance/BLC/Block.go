@@ -10,18 +10,19 @@ import (
 )
 
 type Block struct {
-	//1. 区块高度
+
 	Height int64
-	//2. 上一个区块HASH
+
 	PreBlockHash []byte
-	//3. 交易数据
+
 	Txs []*Transaction
-	//4. 时间戳
+
 	Timestamp int64
-	//5. Hash
+
 	Hash []byte
-	//6. Nonce
+
 	Nonce int64
+
 }
 
 // 需要将txs转换成[]byte
@@ -68,7 +69,7 @@ func DeserializeBlock(blockBytes []byte) *Block {
 	return &block
 }
 
-//1. 创建新的区块
+// 创建新的区块
 func NewBlock(txs []*Transaction, height int64, preBlockHash []byte) *Block {
 
 	// 创建区块
@@ -89,8 +90,9 @@ func NewBlock(txs []*Transaction, height int64, preBlockHash []byte) *Block {
 
 }
 
-//2. 单独写一个方法，生成创世区块
+// 单独写一个方法，生成创世区块
 func CreateGenenisBlock(txs []*Transaction) *Block {
 
 	return NewBlock(txs, 1, []byte{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0})
+
 }

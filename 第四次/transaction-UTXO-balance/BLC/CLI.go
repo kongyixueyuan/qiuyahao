@@ -14,10 +14,10 @@ type CLI struct {
 func printUsage() {
 
 	fmt.Println("Usage:")
-	fmt.Println("\tcreateblockchain -address -- 创建创世区块")
-	fmt.Println("\tsend -from FROM -to TO -amount AMOUNT -- 交易明细")
-	fmt.Println("\tprintchain -- 输出区块信息")
-	fmt.Println("\tgetbalance -address -- 输出区块信息")
+	fmt.Println("\tcreateBlockchain -address -- 创建创世区块")
+	fmt.Println("\tsend -from FROM -to TO -amount AMOUNT -- 发起交易")
+	fmt.Println("\tprintChain -- 打印区块信息")
+	fmt.Println("\tgetBalance -address -- 查询余额")
 
 }
 
@@ -30,38 +30,38 @@ func isValidArgs() {
 
 func (cli *CLI) Run() {
 
-	sendBlockCmd := flag.NewFlagSet("send", flag.ExitOnError)
-	printChainCmd := flag.NewFlagSet("printchain", flag.ExitOnError)
-	createBlockchainCmd := flag.NewFlagSet("createblockchain", flag.ExitOnError)
-	getBalanceCmd := flag.NewFlagSet("getbalance", flag.ExitOnError)
+	sendBlock := flag.NewFlagSet("send", flag.ExitOnError)
+	printChain := flag.NewFlagSet("printChain", flag.ExitOnError)
+	createBlockchain := flag.NewFlagSet("createBlockchain", flag.ExitOnError)
+	getBalance := flag.NewFlagSet("getBalance", flag.ExitOnError)
 
-	flagFrom := sendBlockCmd.String("from", "", "转账源地址")
-	flagTo := sendBlockCmd.String("to", "", "转账目的地址")
-	flagAmount := sendBlockCmd.String("amount", "", "转账金额")
+	flagFrom := sendBlock.String("from", "", "转账源地址")
+	flagTo := sendBlock.String("to", "", "转账目的地址")
+	flagAmount := sendBlock.String("amount", "", "转账金额")
 
-	flagCreateBlockchainWithAddress := createBlockchainCmd.String("address", "", "创建创世区块的地址")
-	getBalanceWithAddress := getBalanceCmd.String("address", "", "查询某个账户的余额")
+	flagCreateBlockchainWithAddress := createBlockchain.String("address", "", "创建创世区块的地址")
+	getBalanceWithAddress := getBalance.String("address", "", "查询某个账户的余额")
 
 	isValidArgs()
 
 	switch os.Args[1] {
 	case "send":
-		err := sendBlockCmd.Parse(os.Args[2:])
+		err := sendBlock.Parse(os.Args[2:])
 		if err != nil {
 			log.Panic(err)
 		}
-	case "printchain":
-		err := printChainCmd.Parse(os.Args[2:])
+	case "printChain":
+		err := printChain.Parse(os.Args[2:])
 		if err != nil {
 			log.Panic(err)
 		}
-	case "createblockchain":
-		err := createBlockchainCmd.Parse(os.Args[2:])
+	case "createBlockchain":
+		err := createBlockchain.Parse(os.Args[2:])
 		if err != nil {
 			log.Panic(err)
 		}
-	case "getbalance":
-		err := getBalanceCmd.Parse(os.Args[2:])
+	case "getBalance":
+		err := getBalance.Parse(os.Args[2:])
 		if err != nil {
 			log.Panic(err)
 		}
@@ -71,22 +71,13 @@ func (cli *CLI) Run() {
 
 	}
 
-	if sendBlockCmd.Parsed() {
+	if sendBlock.Parsed() {
 
 		if *flagFrom == "" || *flagTo == "" || *flagAmount == "" {
 			printUsage()
 			os.Exit(1)
 		}
 
-		//fmt.Println(*flagAddBlockData)
-		//cli.addBlock([]*Transaction{})
-		//fmt.Println(*flagFrom)
-		//fmt.Println(*flagTo)
-		//fmt.Println(*flagAmount)
-		//
-		//fmt.Println(JSONToArray(*flagFrom))
-		//fmt.Println(JSONToArray(*flagTo))
-		//fmt.Println(JSONToArray(*flagAmount))
 		from := JSONToArray(*flagFrom)
 		to := JSONToArray(*flagTo)
 		amount := JSONToArray(*flagAmount)
@@ -95,14 +86,13 @@ func (cli *CLI) Run() {
 
 	}
 
-	if printChainCmd.Parsed() {
+	if printChain.Parsed() {
 
-		//fmt.Println("输出所有区块的信息")
 		cli.Printchain()
 
 	}
 
-	if createBlockchainCmd.Parsed() {
+	if createBlockchain.Parsed() {
 
 		if *flagCreateBlockchainWithAddress == "" {
 			fmt.Println("地址不能为空")
@@ -114,7 +104,7 @@ func (cli *CLI) Run() {
 
 	}
 
-	if getBalanceCmd.Parsed() {
+	if getBalance.Parsed() {
 
 		if *getBalanceWithAddress == "" {
 			fmt.Println("地址不能为空")
@@ -125,5 +115,54 @@ func (cli *CLI) Run() {
 		cli.GetBalance(*getBalanceWithAddress)
 
 	}
+
+}
+
+// 创建创世区块
+func (cli *CLI) CreateGenesisBlockchain(address string)  {
+
+	blockchain := CreateBlockchainWithGenenisBlock(address)
+	defer blockchain.DB.Close()
+
+}
+
+// 查询余额
+func (cli *CLI) GetBalance(address string)  {
+
+	blockchain := BlockchainObject()
+	defer blockchain.DB.Close()
+
+	amount := blockchain.GetBalance(address)
+
+	fmt.Printf("%s一共有%d个Token\n", address, amount)
+
+}
+
+func (cli *CLI) Printchain() {
+
+	if DBExists() == false {
+		fmt.Println("数据库不存在")
+		os.Exit(1)
+	}
+
+	blockchain := BlockchainObject()
+
+	defer blockchain.DB.Close()
+
+	blockchain.Printchain()
+}
+
+// 转账
+func (cli *CLI) Send(from []string, to []string, amount []string)  {
+
+	if DBExists() == false {
+		fmt.Println("数据库不存在")
+		os.Exit(1)
+	}
+
+	blockchain := BlockchainObject()
+	defer blockchain.DB.Close()
+
+	blockchain.MineNewBlock(from, to, amount)
 
 }

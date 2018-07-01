@@ -17,6 +17,7 @@ type ProofOfWork struct {
 
 // 数据拼接，返回字节数组
 func (pow *ProofOfWork) prepareData(nonce int) []byte {
+
 	data := bytes.Join(
 		[][]byte{
 			pow.Block.PreBlockHash,
@@ -30,32 +31,10 @@ func (pow *ProofOfWork) prepareData(nonce int) []byte {
 	)
 
 	return data
+
 }
-
-func (proofOfWork *ProofOfWork) IsValid() bool {
-
-	// 1.proofOfWork.Block.Hash
-
-	// 2.proofOfWork.Target
-
-	var hashInt big.Int
-	hashInt.SetBytes(proofOfWork.Block.Hash)
-
-	if proofOfWork.target.Cmp(&hashInt) == 1 {
-		return true
-	}
-
-	return  false
-}
-
 
 func (proofOfWork *ProofOfWork) Run() ([]byte, int64) {
-
-	// 1.将Block的属性拼接成字节数组
-
-	// 2.生成hash
-
-	// 3.判断hash有效性，如果满足条件，跳出循环
 
 	nonce := 0
 
@@ -88,11 +67,21 @@ func (proofOfWork *ProofOfWork) Run() ([]byte, int64) {
 // 创建新的工作量证明对象
 func NewProofOfWork(block *Block) *ProofOfWork {
 
-	// 1. 创建一个初始值为1的target
+	// 创建一个初始值为1的target
 	target := big.NewInt(1)
 
-	// 2. 左移256 - targetBit
+	// 左移256 - targetBit
 	target = target.Lsh(target, 256 - targetBit)
 
 	return &ProofOfWork{block, target}
 }
+
+func (proofOfWork *ProofOfWork) IsValid() bool {
+
+	var hashInt big.Int
+	hashInt.SetBytes(proofOfWork.Block.Hash)
+
+	return proofOfWork.target.Cmp(&hashInt) == 1
+
+}
+

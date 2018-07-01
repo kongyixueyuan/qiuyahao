@@ -49,8 +49,6 @@ func (blc *Blockchain) Printchain() {
 			}
 		}
 
-		fmt.Println("----------------")
-
 		var hashInt big.Int
 		hashInt.SetBytes(block.PreBlockHash)
 
@@ -59,48 +57,6 @@ func (blc *Blockchain) Printchain() {
 		}
 	}
 
-}
-
-// 增加区块到区块链里面
-func (blc *Blockchain) AddBlockToBlockchain(txs []*Transaction) {
-
-	err := blc.DB.Update(func(tx *bolt.Tx) error {
-
-		//1. 获取表
-		b := tx.Bucket([]byte(blockTableName))
-		//2. 创建新区块
-		if b != nil {
-
-			// 取当前最新区块
-			blockBytes := b.Get(blc.Tip)
-
-			block := DeserializeBlock(blockBytes)
-
-			//3. 将区块序列化并且存储到数据库
-			newBlock := NewBlock(txs, block.Height + 1, block.Hash)
-
-			err := b.Put(newBlock.Hash, newBlock.Serialize())
-			if err != nil {
-				log.Panic(err)
-			}
-
-			//4. 更新数据库里面"l"对于的hash
-			err = b.Put([]byte("l"), newBlock.Hash)
-			if err != nil {
-				log.Panic(err)
-			}
-
-			//5. 更新blockchain的Tip
-			blc.Tip = newBlock.Hash
-
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		log.Panic(err)
-	}
 }
 
 // 判断数据库是否存在
@@ -112,7 +68,7 @@ func DBExists() bool {
 	return true
 }
 
-//1. 创建带有创世区块的区块链
+// 创建带有创世区块的区块链
 func CreateBlockchainWithGenenisBlock(address string) *Blockchain {
 
 	if DBExists() {
@@ -154,7 +110,7 @@ func CreateBlockchainWithGenenisBlock(address string) *Blockchain {
 				log.Panic(err)
 			}
 
-			//存储最新的区块的Hash
+			// 存储最新的区块的Hash
 			err = b.Put([]byte("l"), genesisBlock.Hash)
 
 			if err != nil {
@@ -229,7 +185,7 @@ func (blockchain *Blockchain) UnUTXOs(address string, txs []*Transaction) []*UTX
 	}
 
 	for _, tx := range txs {
-		Work1:
+	label:
 		for index, out := range tx.Vouts {
 
 			if out.UnLockScriptPubKeyWithAddress(address) {
@@ -247,7 +203,7 @@ func (blockchain *Blockchain) UnUTXOs(address string, txs []*Transaction) []*UTX
 							for _, outIndex := range indexArray {
 								if index == outIndex {
 									isSpentUTXO = true
-									continue Work1
+									continue label
 								}
 
 								if !isSpentUTXO {
@@ -296,7 +252,7 @@ func (blockchain *Blockchain) UnUTXOs(address string, txs []*Transaction) []*UTX
 			}
 
 			// Vouts
-			work:
+		label1:
 			for index, out := range tx.Vouts {
 
 				if out.UnLockScriptPubKeyWithAddress(address) {
@@ -312,7 +268,7 @@ func (blockchain *Blockchain) UnUTXOs(address string, txs []*Transaction) []*UTX
 								for _, i := range  indexArray {
 									if index == i && txHash == hex.EncodeToString(tx.TxHash) {
 										isSpentUTXO = true
-										continue work
+										continue label1
 									}
 								}
 
@@ -352,14 +308,14 @@ func (blockchain *Blockchain) UnUTXOs(address string, txs []*Transaction) []*UTX
 // 转账时查找可用的UTXO
 func (blockchain *Blockchain) FindSpendableUTXOS(from string, amount int, txs []*Transaction) (int64, map[string][]int) {
 
-	//1. 获取所有的UTXO
+	// 获取所有的UTXO
 	utxos := blockchain.UnUTXOs(from, txs)
 
 	spendableUTXO := make(map[string][]int)
 
 	var value int64
 
-	//2. 遍历utxos
+	// 遍历utxos
 	for _, utxo := range utxos {
 
 		value = value + utxo.Output.Value
@@ -384,23 +340,14 @@ func (blockchain *Blockchain) FindSpendableUTXOS(from string, amount int, txs []
 // 挖掘新的区块
 func (blockchain *Blockchain) MineNewBlock(from []string, to []string, amount []string) {
 
-	//./main send -from '["xiaohao"]' -to '["huanzai"]' -amount '["4"]'
-
-	//1. 建立一笔交易
-
-
-	fmt.Println(from)
-	fmt.Println(to)
-	fmt.Println(amount)
-
-	//1. 通过相关算法建立Transantion数组
+	// 通过相关算法建立Transantion数组
 	var txs []*Transaction
+
 	for index, address := range from {
 
 		value, _ := strconv.Atoi(amount[index])
 		tx := NewSimpleTransaction(address, to[index], value, blockchain, txs)
 		txs = append(txs, tx)
-		//fmt.Println(tx)
 
 	}
 
@@ -408,6 +355,7 @@ func (blockchain *Blockchain) MineNewBlock(from []string, to []string, amount []
 	blockchain.DB.View(func(tx *bolt.Tx) error {
 
 		b := tx.Bucket([]byte(blockTableName))
+
 		if b!= nil {
 
 			hash := b.Get([]byte("l"))
@@ -420,19 +368,18 @@ func (blockchain *Blockchain) MineNewBlock(from []string, to []string, amount []
 
 	})
 
-	//2. 建立新的区块
+	// 建立新的区块
 	block = NewBlock(txs, block.Height + 1, block.Hash)
 
-	//3. 将新区块存储到数据库
+	// 将新区块存储到数据库
 	blockchain.DB.Update(func(tx *bolt.Tx) error {
 
 		b := tx.Bucket([]byte(blockTableName))
+
 		if b!= nil {
 
 			b.Put(block.Hash, block.Serialize())
-
 			b.Put([]byte("l"), block.Hash)
-
 			blockchain.Tip = block.Hash
 
 		}
@@ -444,6 +391,7 @@ func (blockchain *Blockchain) MineNewBlock(from []string, to []string, amount []
 }
 
 
+// 查询余额
 func (blockchain *Blockchain) GetBalance(address string) int64 {
 
 	utxos := blockchain.UnUTXOs(address, []*Transaction{})
@@ -457,4 +405,5 @@ func (blockchain *Blockchain) GetBalance(address string) int64 {
 	}
 
 	return amount
+
 }

@@ -10,13 +10,13 @@ import (
 
 // UTXO
 type Transaction struct {
-	//1. 交易hash
+	// 交易hash
 	TxHash []byte
 
-	//2. 输入
+	// 输入
 	Vins []*TXInput
 
-	//3. 输出
+	// 输出
 	Vouts []*TXOutput
 }
 
@@ -27,14 +27,13 @@ func (tx *Transaction) IsCoinbaseTransaction() bool {
 
 }
 
-// Transaction 创建分两种情况
-//1. 创世区块创建时的Transaction
+// 创世区块创建时的Transaction
 func NewCoinbaseTransaction(address string) *Transaction {
 
 	// 代表消费
 	txInput := &TXInput{[]byte{}, -1, "Genesis Data"}
 
-	//
+	// 未花费交易输出
 	txOutput := &TXOutput{10, address}
 
 	txCoinbase := &Transaction{[]byte{}, []*TXInput{txInput}, []*TXOutput{txOutput}}
@@ -46,34 +45,12 @@ func NewCoinbaseTransaction(address string) *Transaction {
 	
 }
 
-func (tx *Transaction) HashTransaction() {
-
-	var result bytes.Buffer
-
-	encoder := gob.NewEncoder(&result)
-
-	err := encoder.Encode(tx)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	hash := sha256.Sum256(result.Bytes())
-
-	tx.TxHash = hash[:]
-}
-
-//2. 转账时产生的Transaction
+// 转账时产生的Transaction
 func NewSimpleTransaction(from string, to string, amount int, blockchain *Blockchain, txs []*Transaction) *Transaction {
 
-	//./main send -from '["xiaohao"]' -to '["huanzai"]' -amount '["4"]
-
-	//1. 有一个函数，返回from这个人所有的未花费交易输出所对应的Transaction
-
-	//unUTXOs := blockchain.UnUTXOs(from)
-
-	// 通过一个函数，返回
-	money, spendableUTXODic := blockchain.FindSpendableUTXOS(from, amount, txs)
+	// 记录已花费的output
 	//{hash1:[0],hash2:[2]}
+	money, spendableUTXODic := blockchain.FindSpendableUTXOS(from, amount, txs)
 
 	var txInputs  []*TXInput
 	var txOutputs []*TXOutput
@@ -103,4 +80,20 @@ func NewSimpleTransaction(from string, to string, amount int, blockchain *Blockc
 
 	return tx
 
+}
+
+func (tx *Transaction) HashTransaction() {
+
+	var result bytes.Buffer
+
+	encoder := gob.NewEncoder(&result)
+
+	err := encoder.Encode(tx)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	hash := sha256.Sum256(result.Bytes())
+
+	tx.TxHash = hash[:]
 }
